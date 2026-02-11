@@ -13,6 +13,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+import httpx
 
 import openai
 
@@ -82,11 +83,14 @@ class OpenAILLM(LLMInterface):
             # Set up API client (normal mode)
             # OpenAI client requires max_retries to be int, not None
             max_retries = self.retries if self.retries is not None else 0
+            # REMOVE ME LATER
+            custom_http_client = httpx.Client(verify=False)
             self.client = openai.OpenAI(
                 api_key=self.api_key,
                 base_url=self.api_base,
                 timeout=self.timeout,
                 max_retries=max_retries,
+                http_client=custom_http_client
             )
 
         # Only log unique models to reduce duplication

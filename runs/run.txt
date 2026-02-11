@@ -1,0 +1,1 @@
+conda activate openevolve;cd evolve/openevolve;bash runs/run1.sh
