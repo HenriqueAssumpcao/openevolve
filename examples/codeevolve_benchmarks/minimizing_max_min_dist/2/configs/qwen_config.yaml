@@ -1,81 +1,211 @@
-SYS_MSG: |
-  # PROMPT-BLOCK-START
+# OpenEvolve Default Configuration
+# This file contains all available configuration options with sensible defaults
+# You can use this as a template for your own configuration
 
-  SETTING:
-  You are an expert computational geometer and optimization specialist focusing on point dispersion problems.
-  Your task is to evolve a constructor function that generates an optimal arrangement of exactly 16 points in 2D space, maximizing the ratio of minimum distance to maximum distance between all point pairs.
-  
-  PROBLEM CONTEXT:
-  - Target: Beat the AlphaEvolve benchmark of min/max ratio = 1/√12.889266112 ≈ 0.2786
-  - Constraint: Points must be placed in 2D Euclidean space (typically normalized to unit square [0,1] × [0,1])
-  - Mathematical formulation: For points Pi = (xi, yi), i = 1,...,16:
-    * Distance matrix: dij = √[(xi-xj)² + (yi-yj)²] for all i≠j
-    * Minimum distance: dmin = min{dij : i≠j}
-    * Maximum distance: dmax = max{dij : i≠j}
-    * Objective: maximize dmin/dmax subject to spatial constraints
+# General settings
+max_iterations: 3000                  # Maximum number of evolution iterations
+checkpoint_interval: 500               # Save checkpoints every N iterations
+log_level: "INFO"                     # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+log_dir: null                         # Custom directory for logs (default: output_dir/logs)
+random_seed: null                       # Random seed for reproducibility (null = random, 42 = default)
 
-  PERFORMANCE METRICS:
-  1. **min_max_ratio**: dmin/dmax ratio (PRIMARY OBJECTIVE - maximize)
-  2. **benchmark_ratio**: min_max_ratio / 0.2786 (progress toward beating AlphaEvolve benchmark)
-  3. **eval_time**: Execution time in seconds (balance accuracy vs. efficiency)
+# Evolution settings
+diff_based_evolution: true            # Use diff-based evolution (true) or full rewrites (false)
+max_code_length: 2147483647              # Maximum allowed code length in characters
 
-  COMPUTATIONAL RESOURCES:
-  **Core packages**: numpy, scipy, sympy, pandas
-  **Additional useful packages**:
-  - **3D optimization**: `scipy.optimize`, `deap`, `platypus`, `pymoo` (multi-objective)
-  - **3D geometric computing**: 
-    * `scipy.spatial` (3D distance matrices, ConvexHull, SphericalVoronoi)
-    * `trimesh` (3D mesh operations), `open3d` (3D data processing)
-  - **Specialized 3D algorithms**: 
-    * `spherical-geometry` for spherical arrangements
-    * `quaternion` package for 3D rotations
-  - **Performance**: `numba` (3D JIT compilation), `joblib`
+# Early stopping settings
+early_stopping_patience: null         # Stop after N iterations without improvement (null = disabled)
+convergence_threshold: 0.001          # Minimum improvement required to reset patience counter
+early_stopping_metric: "combined_score"  # Metric to track for early stopping
 
-  TECHNICAL REQUIREMENTS:
-  - **Reproducibility**: Fixed random seeds for all stochastic components
+# LLM configuration
+llm:
+  # Models for evolution
+  models:
+    # List of available models with their weights
+    - name: "AWS_QWEN-QWEN3-CODER-30B-INSTRUCT"
+      weight: 1
+  # Models for LLM feedback
+  evaluator_models:
+    # List of available models with their weights
+    - name: "AWS_QWEN-QWEN3-CODER-30B-INSTRUCT"
+      weight: 1
 
-  COMPUTATIONAL BUDGET:
-  - **Time limit**: 180 seconds maximum execution time
-  - **Memory limit**: 1 GB
+  # API configuration
+  api_base: "https://litellm.genai.local/"  # Base URL for API (change for non-OpenAI models)
+  api_key: ${OPENAI_API_KEY}      # API key (defaults to OPENAI_API_KEY env variable)
+  # or use ${VAR} syntax to specify which environment variable to read from:
+  # api_key: ${GEMINI_API_KEY}        # Reads API key from $GEMINI_API_KEY
 
-  # PROMPT-BLOCK-END
+  # Generation parameters
+  temperature: 0.7                    # Temperature for generation (higher = more creative)
+  top_p: 0.8                        # Top-p sampling parameter
+  max_tokens: 2147483647                    # Maximum tokens to generate
+
+  # Request parameters
+  timeout: 120                         # Timeout for API requests in seconds
+  retries: 3                          # Number of retries for failed requests
+  retry_delay: 1                      # Delay between retries in seconds
+
+# Prompt configuration
+prompt:
+  template_dir: null                  # Custom directory for prompt templates
+  system_message: |
+    SETTING:
+      You are an expert computational geometer and optimization specialist focusing on point dispersion problems.
+      Your task is to evolve a constructor function that generates an optimal arrangement of exactly 16 points in 2D space, maximizing the ratio of minimum distance to maximum distance between all point pairs.
       
-CODEBASE_PATH: 'src/'
-INIT_FILE_DATA: {filename: 'init_program.py', language: 'python'}
-EVAL_FILE_NAME: 'evaluate.py'
-EVAL_TIMEOUT: 180
+      PROBLEM CONTEXT:
+      - Target: Beat the AlphaEvolve benchmark of min/max ratio = 1/√12.889266112 ≈ 0.2786
+      - Constraint: Points must be placed in 2D Euclidean space (typically normalized to unit square [0,1] × [0,1])
+      - Mathematical formulation: For points Pi = (xi, yi), i = 1,...,16:
+        * Distance matrix: dij = √[(xi-xj)² + (yi-yj)²] for all i≠j
+        * Minimum distance: dmin = min{dij : i≠j}
+        * Maximum distance: dmax = max{dij : i≠j}
+        * Objective: maximize dmin/dmax subject to spatial constraints
 
-MAX_MEM_BYTES: 1000000000
-MEM_CHECK_INTERVAL_S: 0.1
+      PERFORMANCE METRICS:
+      1. **min_max_ratio**: dmin/dmax ratio (PRIMARY OBJECTIVE - maximize)
+      2. **combined_score**: min_max_ratio / 0.2786 (progress toward beating AlphaEvolve benchmark)
+      3. **eval_time**: Execution time in seconds (balance accuracy vs. efficiency)
 
-EVOLVE_CONFIG: {fitness_key: 'benchmark_ratio',
-                num_epochs: 500,ckpt: 10,max_size: null,init_pop: 10,
-                exploration_rate: 0.2, 
-                selection_policy: 'roulette', selection_kwargs: {roulette_by_rank: True},
-                early_stopping_rounds: null,
-                num_islands: 10, migration_topology: 'ring', migration_interval: 40, migration_rate: 0.1,
-                meta_prompting: True, use_embedding: False, use_map_elites: True,
-                num_inspirations: 3,
-                max_chat_depth: 5,
-                mp_start_marker: "# PROMPT-BLOCK-START", mp_end_marker: "# PROMPT-BLOCK-END",
-                evolve_start_marker: "# EVOLVE-BLOCK-START", evolve_end_marker: "# EVOLVE-BLOCK-END",
-                use_scheduler: True, type: 'PlateauScheduler', scheduler_kwargs: {min_rate: 0.2, max_rate: 0.5, plateau_threshold: 5, increase_factor: 1.05, decrease_factor: 0.95}
-                }
+      COMPUTATIONAL RESOURCES:
+      **Core packages**: numpy, scipy, sympy, pandas
+      **Additional useful packages**:
+      - **3D optimization**: `scipy.optimize`, `deap`, `platypus`, `pymoo` (multi-objective)
+      - **3D geometric computing**: 
+        * `scipy.spatial` (3D distance matrices, ConvexHull, SphericalVoronoi)
+        * `trimesh` (3D mesh operations), `open3d` (3D data processing)
+      - **Specialized 3D algorithms**: 
+        * `spherical-geometry` for spherical arrangements
+        * `quaternion` package for 3D rotations
+      - **Performance**: `numba` (3D JIT compilation), `joblib`
 
-EXPLORATION_ENSEMBLE: [{model_name: 'AWS_QWEN-QWEN3-CODER-30B-INSTRUCT', temp: 0.7, top_p: 0.8, retries: 3, weight: 1, verify_ssl: False}]
+      TECHNICAL REQUIREMENTS:
+      - **Reproducibility**: Fixed random seeds for all stochastic components
 
-EXPLOITATION_ENSEMBLE: [{model_name: 'AWS_QWEN-QWEN3-CODER-30B-INSTRUCT', temp: 0.7, top_p: 0.8, retries: 3, weight: 1, verify_ssl: False}]
+      COMPUTATIONAL BUDGET:
+      - **Time limit**: 60 seconds maximum execution time
+      - **Memory limit**: 1 GB
 
-SAMPLER_AUX_LM : {model_name: 'AWS_QWEN-QWEN3-CODER-30B-INSTRUCT', temp: 0.7, top_p: 0.8, retries: 3, weight: 1, verify_ssl: False}
+  evaluator_system_message: "You are an expert code reviewer."
 
-EMBEDDING: {model_name: 'AZURE_TEXT-EMBEDDING-3-SMALL', retries: 3, verify_ssl: False, dimensions: 128}
+  # Number of examples to include in the prompt
+  num_top_programs: 3                 # Number of top-performing programs to include
+  num_diverse_programs: 2             # Number of diverse programs to include
 
-MAP_ELITES: {elite_map_type: 'cvt',
-             features: [
-              {name: 'benchmark_ratio', min_val: 0, max_val: 1.1},
-              {name: 'eval_time', min_val: 0, max_val: 180},
-             ],
-             elite_map_kwargs: {
-              num_centroids: 30, num_init_samples: 1000, max_iter: 300, tolerance: 0.0001
-             }
-}
+  # Template stochasticity
+  use_template_stochasticity: false    # Use random variations in templates for diversity
+  template_variations:                # Different phrasings for parts of the template
+    improvement_suggestion:
+      - "Here's how we could improve this code:"
+      - "I suggest the following improvements:"
+      - "We can enhance this code by:"
+
+  # Artifact rendering
+  include_artifacts: true             # Include execution outputs/errors in prompt
+  max_artifact_bytes: 20480           # Maximum artifact size in bytes (20KB default)
+  artifact_security_filter: true      # Apply security filtering to artifacts
+
+  # Feature extraction and program labeling thresholds
+  # These control how the LLM perceives and categorizes programs
+  suggest_simplification_after_chars: 500     # Suggest simplifying if program exceeds this many characters
+  include_changes_under_chars: 100           # Include change descriptions in features if under this length
+  concise_implementation_max_lines: 10        # Label as "concise" if program has this many lines or fewer
+  comprehensive_implementation_min_lines: 50  # Label as "comprehensive" if program has this many lines or more
+
+  # Diff summary formatting for "Previous Attempts" section
+  # Controls how SEARCH/REPLACE blocks are displayed in prompts
+  diff_summary_max_line_len: 100              # Truncate lines longer than this (with "...")
+  diff_summary_max_lines: 30                  # Max lines per SEARCH/REPLACE block
+
+  # Note: meta-prompting features are not yet implemented
+
+# Database configuration
+database:
+  # General settings
+  db_path: null                       # Path to persist database (null = in-memory only)
+  in_memory: true                     # Keep database in memory for faster access
+  log_prompts: true                  # If true, log all prompts and responses into the database
+
+  # Evolutionary parameters
+  population_size: 1000               # Maximum number of programs to keep in memory
+  archive_size: 100                   # Size of elite archive
+  num_islands: 10                      # Number of islands for island model (separate populations)
+
+  # Island-based evolution parameters
+  # Islands provide diversity by maintaining separate populations that evolve independently.
+  # Migration periodically shares the best solutions between adjacent islands.
+  migration_interval: 40              # Migrate between islands every N generations
+  migration_rate: 0.1                 # Fraction of top programs to migrate (0.1 = 10%)
+
+  # Selection parameters
+  elite_selection_ratio: 0.1          # Ratio of elite programs to select
+  exploration_ratio: 0.2              # Ratio of exploration vs exploitation
+  exploitation_ratio: 0.7             # Ratio of exploitation vs random selection
+  # Note: diversity_metric is fixed to "edit_distance" (feature_based not implemented)
+
+  # Feature map dimensions for MAP-Elites
+  # Default if not specified: ["complexity", "diversity"]
+  # 
+  # Built-in features (always available, computed by OpenEvolve):
+  #   - "complexity": Code length
+  #   - "diversity": Code structure diversity
+  #
+  # You can mix built-in features with custom metrics from your evaluator:
+  feature_dimensions:                 # Dimensions for MAP-Elites feature map (for diversity, NOT fitness)
+    - "complexity"                    # Code length (built-in)
+    - "diversity"                     # Code diversity (built-in)
+  # Example with custom features:
+  # feature_dimensions:
+  #   - "performance"                 # Must be returned by your evaluator
+  #   - "correctness"                 # Must be returned by your evaluator
+  #   - "memory_efficiency"           # Must be returned by your evaluator
+  
+  # Number of bins per dimension
+  # Can be a single integer (same for all dimensions) or a dict
+  feature_bins: 10                    # Number of bins per dimension
+  # Example of per-dimension configuration:
+  # feature_bins:
+  #   complexity: 10                  # 10 bins for complexity
+  #   diversity: 15                   # 15 bins for diversity
+  #   performance: 20                 # 20 bins for custom metric
+  
+  diversity_reference_size: 20        # Size of reference set for diversity calculation
+
+# Evaluator configuration
+evaluator:
+  # Fitness calculation: Uses 'combined_score' if available, otherwise averages
+  # all metrics EXCEPT those listed in database.feature_dimensions
+  
+  # General settings
+  timeout: 60                        # Maximum evaluation time in seconds
+  max_retries: 0                     # Maximum number of retries for evaluation
+
+  # Note: resource limits (memory_limit_mb, cpu_limit) are not yet implemented
+
+  # Evaluation strategies
+  cascade_evaluation: false            # Use cascade evaluation to filter bad solutions early
+  cascade_thresholds:                 # Thresholds for advancing to next evaluation stage
+    - 0.5                             # First stage threshold
+    - 0.75                            # Second stage threshold
+    - 0.9                             # Third stage threshold
+
+  # Parallel evaluation
+  parallel_evaluations: 10             # Number of parallel evaluations
+  # Note: distributed evaluation is not yet implemented
+
+  # LLM-based feedback (experimental)
+  use_llm_feedback: false             # Use LLM to evaluate code quality
+  llm_feedback_weight: 0.1            # Weight for LLM feedback in final score
+
+# Evolution trace configuration
+# Logs detailed traces of program evolution for RL training and analysis
+evolution_trace:
+  enabled: false                      # Enable evolution trace logging
+  format: 'jsonl'                     # Output format: 'jsonl', 'json', or 'hdf5'
+  include_code: false                 # Include full program code in traces
+  include_prompts: true               # Include prompts and LLM responses
+  output_path: null                   # Path for trace output (defaults to output_dir/evolution_trace.{format})
+  buffer_size: 10                     # Number of traces to buffer before writing
+  compress: false                     # Compress output file (jsonl only)

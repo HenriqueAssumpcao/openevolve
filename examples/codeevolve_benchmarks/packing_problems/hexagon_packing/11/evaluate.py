@@ -7,7 +7,7 @@
 # ===--------------------------------------------------------------------------------------===#
 #
 # This file implements the evaluator for problem of packing unit regular hexagons inside
-# a regular hexagon, with 12 unit hexagons.
+# a regular hexagon, with 11 unit hexagons.
 #
 # ===--------------------------------------------------------------------------------------===#
 #
@@ -27,8 +27,8 @@ import json
 import numpy as np
 import math
 
-N_HEX = 12
-BENCHMARK = 1 / 3.9419123
+N_HEX = 11
+BENCHMARK = 1 / 3.930092
 
 
 def hexagon_vertices(
@@ -192,65 +192,59 @@ def verify_construction(
     print("Construction is valid.")
 
 
-def evaluate(program_path: str, results_path: str):
-    abs_program_path = os.path.abspath(program_path)
-    program_dir = os.path.dirname(abs_program_path)
-    module_name = os.path.splitext(os.path.basename(program_path))[0]
-
+def evaluate(program_path: str):
     try:
-        sys.path.insert(0, program_dir)
-        program = __import__(module_name)
-        start_time = time.time()
-        inner_hex_data, outer_hex_data, outer_hex_side_length = program.hexagon_packing_12()
-        end_time = time.time()
-        eval_time = end_time - start_time
-    except Exception as err:
-        raise err
-    finally:
-        if program_dir in sys.path:
-            sys.path.remove(program_dir)
+        abs_program_path = os.path.abspath(program_path)
+        program_dir = os.path.dirname(abs_program_path)
+        module_name = os.path.splitext(os.path.basename(program_path))[0]
 
-    if not isinstance(inner_hex_data, np.ndarray):
-        inner_hex_data = np.array(inner_hex_data)
-    if not isinstance(outer_hex_data, np.ndarray):
-        outer_hex_data = np.array(outer_hex_data)
+        try:
+            sys.path.insert(0, program_dir)
+            program = __import__(module_name)
+            start_time = time.time()
+            inner_hex_data, outer_hex_data, outer_hex_side_length = program.hexagon_packing_11()
+            end_time = time.time()
+            eval_time = end_time - start_time
+        except Exception as err:
+            raise err
+        finally:
+            if program_dir in sys.path:
+                sys.path.remove(program_dir)
 
-    assert outer_hex_side_length > 0, "Outer hex side length must be positive!"
-    assert bool(np.isnan(inner_hex_data).any()) is False, "nan entry found in inner_hex_data!"
-    assert bool(np.isnan(outer_hex_data).any()) is False, "nan entry found in outer_hex_data!"
+        if not isinstance(inner_hex_data, np.ndarray):
+            inner_hex_data = np.array(inner_hex_data)
+        if not isinstance(outer_hex_data, np.ndarray):
+            outer_hex_data = np.array(outer_hex_data)
 
-    if inner_hex_data.shape != (N_HEX, 3):
-        raise ValueError(
-            f"Invalid shapes: inner_hex_data = {inner_hex_data.shape}, expected {(N_HEX,3)}"
+        assert outer_hex_side_length > 0, "Outer hex side length must be positive!"
+        assert bool(np.isnan(inner_hex_data).any()) is False, "nan entry found in inner_hex_data!"
+        assert bool(np.isnan(outer_hex_data).any()) is False, "nan entry found in outer_hex_data!"
+
+        if inner_hex_data.shape != (N_HEX, 3):
+            raise ValueError(
+                f"Invalid shapes: inner_hex_data = {inner_hex_data.shape}, expected {(N_HEX,3)}"
+            )
+
+        if outer_hex_data.shape != (3,):
+            raise ValueError(
+                f"Invalid shapes: outer_hex_data = {outer_hex_data.shape}, expected {(3,)}"
+            )
+
+        outer_hex_center = outer_hex_data[:2]
+        outer_hex_angle_degrees = outer_hex_data[-1]
+        verify_construction(
+            inner_hex_data, outer_hex_center, outer_hex_side_length, outer_hex_angle_degrees
         )
 
-    if outer_hex_data.shape != (3,):
-        raise ValueError(
-            f"Invalid shapes: outer_hex_data = {outer_hex_data.shape}, expected {(3,)}"
-        )
+        inv_outer_hex_side_length = float(1 / outer_hex_side_length)
 
-    outer_hex_center = outer_hex_data[:2]
-    outer_hex_angle_degrees = outer_hex_data[-1]
-    verify_construction(
-        inner_hex_data, outer_hex_center, outer_hex_side_length, outer_hex_angle_degrees
-    )
-
-    inv_outer_hex_side_length = float(1 / outer_hex_side_length)
-
-    with open(results_path, "w") as f:
-        json.dump(
-            {
-                "inv_outer_hex_side_length": inv_outer_hex_side_length,
-                "benchmark_ratio": float(inv_outer_hex_side_length / BENCHMARK),
-                "eval_time": float(eval_time),
-            },
-            f,
-            indent=4,
-        )
-
-
-if __name__ == "__main__":
-    program_path = sys.argv[1]
-    results_path = sys.argv[2]
-
-    evaluate(program_path, results_path)
+        return {
+        "combined_score": float(inv_outer_hex_side_length / BENCHMARK),
+        "inv_outer_hex_side_length": inv_outer_hex_side_length,
+        "eval_time": float(eval_time),
+        }
+    except Exception as e:
+        return {
+            'combined_score': 0.0,
+            'error': str(e)
+        }

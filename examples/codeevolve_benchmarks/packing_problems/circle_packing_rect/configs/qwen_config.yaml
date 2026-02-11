@@ -43,7 +43,7 @@ llm:
   max_tokens: 2147483647                    # Maximum tokens to generate
 
   # Request parameters
-  timeout: 360                         # Timeout for API requests in seconds
+  timeout: 120                         # Timeout for API requests in seconds
   retries: 3                          # Number of retries for failed requests
   retry_delay: 1                      # Delay between retries in seconds
 

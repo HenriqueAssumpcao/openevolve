@@ -56,43 +56,37 @@ def evaluate_sequence(sequence: list[float]) -> float:
 
     return float(2 * n * max_b / (sum_a**2))
 
-def evaluate(program_path: str, results_path: str = None) -> None:
-    abs_program_path = os.path.abspath(program_path)
-    program_dir = os.path.dirname(abs_program_path)
-    module_name = os.path.splitext(os.path.basename(program_path))[0]
-
-    sequence = None
-    eval_time = 0
+def evaluate(program_path: str):
     try:
-        sys.path.insert(0, program_dir)
-        program = __import__(module_name)
+        abs_program_path = os.path.abspath(program_path)
+        program_dir = os.path.dirname(abs_program_path)
+        module_name = os.path.splitext(os.path.basename(program_path))[0]
 
-        start_time = time.time()
-        sequence = program.search_for_best_sequence()
-        end_time = time.time()
-        eval_time = end_time - start_time
-    except Exception as err:
-        raise err
-    finally:
-        if program_dir in sys.path:
-            sys.path.remove(program_dir)
+        sequence = None
+        eval_time = 0
+        try:
+            sys.path.insert(0, program_dir)
+            program = __import__(module_name)
 
-    c1 = evaluate_sequence(sequence)
+            start_time = time.time()
+            sequence = program.search_for_best_sequence()
+            end_time = time.time()
+            eval_time = end_time - start_time
+        except Exception as err:
+            raise err
+        finally:
+            if program_dir in sys.path:
+                sys.path.remove(program_dir)
 
-    with open(results_path, "w") as f:
-        json.dump(
-            {
-                "inv_c1": float(1/c1),
-                "benchmark_ratio": float(BENCHMARK/c1),
-                "eval_time": float(eval_time),
-            },
-            f,
-            indent=4,
-        )
+        c1 = evaluate_sequence(sequence)
 
-
-if __name__ == "__main__":
-    program_path = sys.argv[1]
-    results_path = sys.argv[2]
-
-    evaluate(program_path, results_path)
+        return  {
+            "combined_score": float(BENCHMARK/c1),
+            "inv_c1": float(1/c1),
+            "eval_time": float(eval_time),
+                }
+    except Exception as e:
+        return {
+            'combined_score': 0.0,
+            'error': str(e)
+        }

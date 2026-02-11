@@ -70,48 +70,43 @@ def verify_c2_solution(f_values: np.ndarray):
     return computed_c2
 
 
-def evaluate(program_path: str, results_path: str):
-    abs_program_path = os.path.abspath(program_path)
-    program_dir = os.path.dirname(abs_program_path)
-    module_name = os.path.splitext(os.path.basename(program_path))[0]
-    
-    f_values = None
-    eval_time = 0
-    
+def evaluate(program_path: str):
     try:
-        sys.path.insert(0, program_dir)
-        program = __import__(module_name)
-        start_time = time.time()
-        f_values_list = program.construct_function()
-        end_time = time.time()
-        eval_time = end_time - start_time
+        abs_program_path = os.path.abspath(program_path)
+        program_dir = os.path.dirname(abs_program_path)
+        module_name = os.path.splitext(os.path.basename(program_path))[0]
         
-        # Convert to numpy array
-        if not isinstance(f_values_list, (list, np.ndarray)):
-            raise ValueError(f"construct_function must return list or np.ndarray, got {type(f_values_list)}")
-        f_values = np.array(f_values_list, dtype=float)
+        f_values = None
+        eval_time = 0
         
-    except Exception as err:
-        raise err
-    finally:
-        if program_dir in sys.path:
-            sys.path.remove(program_dir)
-    
-    c2 = verify_c2_solution(f_values)
-    
-    with open(results_path, "w") as f:
-        json.dump(
-            {
-                "c2": float(c2),
-                "benchmark_ratio": float(c2) / BENCHMARK,
-                "eval_time": float(eval_time),
-            },
-            f,
-            indent=4,
-        )
-
-
-if __name__ == "__main__":
-    program_path = sys.argv[1]
-    results_path = sys.argv[2]
-    evaluate(program_path, results_path)
+        try:
+            sys.path.insert(0, program_dir)
+            program = __import__(module_name)
+            start_time = time.time()
+            f_values_list = program.construct_function()
+            end_time = time.time()
+            eval_time = end_time - start_time
+            
+            # Convert to numpy array
+            if not isinstance(f_values_list, (list, np.ndarray)):
+                raise ValueError(f"construct_function must return list or np.ndarray, got {type(f_values_list)}")
+            f_values = np.array(f_values_list, dtype=float)
+            
+        except Exception as err:
+            raise err
+        finally:
+            if program_dir in sys.path:
+                sys.path.remove(program_dir)
+        
+        c2 = verify_c2_solution(f_values)
+        
+        return {
+            "combined_score": float(c2) / BENCHMARK,
+            "c2": float(c2),
+            "eval_time": float(eval_time),
+                }
+    except Exception as e:
+        return {
+            'combined_score': 0.0,
+            'error': str(e)
+        }
