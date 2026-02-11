@@ -194,7 +194,7 @@ evaluator:
   # all metrics EXCEPT those listed in database.feature_dimensions
   
   # General settings
-  timeout: 60                        # Maximum evaluation time in seconds
+  timeout: 65                        # Maximum evaluation time in seconds
   max_retries: 0                     # Maximum number of retries for evaluation
 
   # Note: resource limits (memory_limit_mb, cpu_limit) are not yet implemented

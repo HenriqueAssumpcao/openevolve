@@ -130,7 +130,7 @@ database:
   log_prompts: true                  # If true, log all prompts and responses into the database
 
   # Evolutionary parameters
-  population_size: 1000               # Maximum number of programs to keep in memory
+  population_size: 3000               # Maximum number of programs to keep in memory
   archive_size: 100                   # Size of elite archive
   num_islands: 10                      # Number of islands for island model (separate populations)
 
@@ -180,7 +180,7 @@ evaluator:
   # all metrics EXCEPT those listed in database.feature_dimensions
   
   # General settings
-  timeout: 60                        # Maximum evaluation time in seconds
+  timeout: 65                        # Maximum evaluation time in seconds
   max_retries: 0                     # Maximum number of retries for evaluation
 
   # Note: resource limits (memory_limit_mb, cpu_limit) are not yet implemented

@@ -18,6 +18,7 @@
 #
 # ===--------------------------------------------------------------------------------------===#
 
+import multiprocessing
 import sys
 import os
 from importlib import __import__
@@ -29,6 +30,7 @@ import math
 
 N_HEX = 11
 BENCHMARK = 1 / 3.930092
+HARD_TIMEOUT = 60
 
 
 def hexagon_vertices(
@@ -192,7 +194,8 @@ def verify_construction(
     print("Construction is valid.")
 
 
-def evaluate(program_path: str):
+def _run_in_subprocess(program_path: str, result_queue: multiprocessing.Queue):
+    """Run the evaluation inside a subprocess so it can be hard-killed on timeout."""
     try:
         abs_program_path = os.path.abspath(program_path)
         program_dir = os.path.dirname(abs_program_path)
@@ -203,10 +206,10 @@ def evaluate(program_path: str):
             program = __import__(module_name)
             start_time = time.time()
             inner_hex_data, outer_hex_data, outer_hex_side_length = program.hexagon_packing_11()
-            end_time = time.time()
-            eval_time = end_time - start_time
+            eval_time = time.time() - start_time
         except Exception as err:
-            raise err
+            result_queue.put({"combined_score": 0.0, "error": str(err)})
+            return
         finally:
             if program_dir in sys.path:
                 sys.path.remove(program_dir)
@@ -222,7 +225,7 @@ def evaluate(program_path: str):
 
         if inner_hex_data.shape != (N_HEX, 3):
             raise ValueError(
-                f"Invalid shapes: inner_hex_data = {inner_hex_data.shape}, expected {(N_HEX,3)}"
+                f"Invalid shapes: inner_hex_data = {inner_hex_data.shape}, expected {(N_HEX, 3)}"
             )
 
         if outer_hex_data.shape != (3,):
@@ -238,13 +241,27 @@ def evaluate(program_path: str):
 
         inv_outer_hex_side_length = float(1 / outer_hex_side_length)
 
-        return {
-        "combined_score": float(inv_outer_hex_side_length / BENCHMARK),
-        "inv_outer_hex_side_length": inv_outer_hex_side_length,
-        "eval_time": float(eval_time),
-        }
+        result_queue.put({
+            "combined_score": float(inv_outer_hex_side_length / BENCHMARK),
+            "inv_outer_hex_side_length": inv_outer_hex_side_length,
+            "eval_time": float(eval_time),
+        })
     except Exception as e:
-        return {
-            'combined_score': 0.0,
-            'error': str(e)
-        }
+        result_queue.put({"combined_score": 0.0, "error": str(e)})
+
+
+def evaluate(program_path: str):
+    result_queue = multiprocessing.Queue()
+    proc = multiprocessing.Process(target=_run_in_subprocess, args=(program_path, result_queue))
+    proc.start()
+    proc.join(timeout=HARD_TIMEOUT)
+
+    if proc.is_alive():
+        proc.kill()
+        proc.join()
+        return {"combined_score": 0.0, "error": f"Hard timeout after {HARD_TIMEOUT}s"}
+
+    if not result_queue.empty():
+        return result_queue.get_nowait()
+
+    return {"combined_score": 0.0, "error": f"Subprocess exited with code {proc.exitcode} (no result)"}

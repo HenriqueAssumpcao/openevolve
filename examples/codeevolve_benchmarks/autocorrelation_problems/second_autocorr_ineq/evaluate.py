@@ -17,6 +17,7 @@
 #
 # ===--------------------------------------------------------------------------------------===#
 
+import multiprocessing
 import sys
 import os
 import time
@@ -25,6 +26,7 @@ import numpy as np
 from importlib import __import__
 
 BENCHMARK = 0.962
+HARD_TIMEOUT = 60
 
 def verify_c2_solution(f_values: np.ndarray):
     """
@@ -70,43 +72,55 @@ def verify_c2_solution(f_values: np.ndarray):
     return computed_c2
 
 
-def evaluate(program_path: str):
+def _run_in_subprocess(program_path: str, result_queue: multiprocessing.Queue):
+    """Run the evaluation inside a subprocess so it can be hard-killed on timeout."""
     try:
         abs_program_path = os.path.abspath(program_path)
         program_dir = os.path.dirname(abs_program_path)
         module_name = os.path.splitext(os.path.basename(program_path))[0]
-        
-        f_values = None
-        eval_time = 0
-        
+
         try:
             sys.path.insert(0, program_dir)
             program = __import__(module_name)
             start_time = time.time()
             f_values_list = program.construct_function()
-            end_time = time.time()
-            eval_time = end_time - start_time
-            
+            eval_time = time.time() - start_time
+
             # Convert to numpy array
             if not isinstance(f_values_list, (list, np.ndarray)):
                 raise ValueError(f"construct_function must return list or np.ndarray, got {type(f_values_list)}")
             f_values = np.array(f_values_list, dtype=float)
-            
+
         except Exception as err:
-            raise err
+            result_queue.put({"combined_score": 0.0, "error": str(err)})
+            return
         finally:
             if program_dir in sys.path:
                 sys.path.remove(program_dir)
-        
+
         c2 = verify_c2_solution(f_values)
-        
-        return {
+
+        result_queue.put({
             "combined_score": float(c2) / BENCHMARK,
             "c2": float(c2),
             "eval_time": float(eval_time),
-                }
+        })
     except Exception as e:
-        return {
-            'combined_score': 0.0,
-            'error': str(e)
-        }
+        result_queue.put({"combined_score": 0.0, "error": str(e)})
+
+
+def evaluate(program_path: str):
+    result_queue = multiprocessing.Queue()
+    proc = multiprocessing.Process(target=_run_in_subprocess, args=(program_path, result_queue))
+    proc.start()
+    proc.join(timeout=HARD_TIMEOUT)
+
+    if proc.is_alive():
+        proc.kill()
+        proc.join()
+        return {"combined_score": 0.0, "error": f"Hard timeout after {HARD_TIMEOUT}s"}
+
+    if not result_queue.empty():
+        return result_queue.get_nowait()
+
+    return {"combined_score": 0.0, "error": f"Subprocess exited with code {proc.exitcode} (no result)"}

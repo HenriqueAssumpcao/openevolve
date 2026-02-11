@@ -18,6 +18,7 @@
 #
 # ===--------------------------------------------------------------------------------------===#
 
+import multiprocessing
 import sys
 import os
 from importlib import __import__
@@ -29,9 +30,11 @@ import json
 NUM_POINTS = 16
 DIMENSION = 2
 BENCHMARK = 1 / 12.889266112
+HARD_TIMEOUT = 60
 
 
-def evaluate(program_path: str):
+def _run_in_subprocess(program_path: str, result_queue: multiprocessing.Queue):
+    """Run the evaluation inside a subprocess so it can be hard-killed on timeout."""
     try:
         abs_program_path = os.path.abspath(program_path)
         program_dir = os.path.dirname(abs_program_path)
@@ -42,10 +45,10 @@ def evaluate(program_path: str):
             program = __import__(module_name)
             start_time = time.time()
             points = program.min_max_dist_dim2_16()
-            end_time = time.time()
-            eval_time = end_time - start_time
+            eval_time = time.time() - start_time
         except Exception as err:
-            raise err
+            result_queue.put({"combined_score": 0.0, "error": str(err)})
+            return
         finally:
             if program_dir in sys.path:
                 sys.path.remove(program_dir)
@@ -55,7 +58,7 @@ def evaluate(program_path: str):
 
         if points.shape != (NUM_POINTS, DIMENSION):
             raise ValueError(
-                f"Invalid shapes: points = {points.shape}, expected {(NUM_POINTS,DIMENSION)}"
+                f"Invalid shapes: points = {points.shape}, expected {(NUM_POINTS, DIMENSION)}"
             )
 
         pairwise_distances = sp.spatial.distance.pdist(points)
@@ -64,13 +67,27 @@ def evaluate(program_path: str):
 
         inv_ratio_squared = (min_distance / max_distance) ** 2 if max_distance > 0 else 0
 
-        return  {
+        result_queue.put({
             "combined_score": float(inv_ratio_squared / BENCHMARK),
             "min_max_ratio": float(inv_ratio_squared),
             "eval_time": float(eval_time),
-                }
+        })
     except Exception as e:
-        return {
-            'combined_score': 0.0,
-            'error': str(e)
-        }
+        result_queue.put({"combined_score": 0.0, "error": str(e)})
+
+
+def evaluate(program_path: str):
+    result_queue = multiprocessing.Queue()
+    proc = multiprocessing.Process(target=_run_in_subprocess, args=(program_path, result_queue))
+    proc.start()
+    proc.join(timeout=HARD_TIMEOUT)
+
+    if proc.is_alive():
+        proc.kill()
+        proc.join()
+        return {"combined_score": 0.0, "error": f"Hard timeout after {HARD_TIMEOUT}s"}
+
+    if not result_queue.empty():
+        return result_queue.get_nowait()
+
+    return {"combined_score": 0.0, "error": f"Subprocess exited with code {proc.exitcode} (no result)"}
