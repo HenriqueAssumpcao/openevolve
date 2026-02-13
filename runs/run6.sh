@@ -1,6 +1,10 @@
 #!/bin/bash
 
+<<<<<<< HEAD
 PROB_NAME="codeevolve_benchmarks/autocorrelation_problems/second_autocorr_ineq/"
+=======
+PROB_NAME="codeevolve_benchmarks/packing_problems/hexagon_packing/12"
+>>>>>>> d6c59074dc1c2ba8a1dbeb8f7dca8ac5bc04016f
 BASE_DIR="examples/${PROB_NAME}"
 CFG_PATH="${BASE_DIR}/configs/qwen_config.yaml"
 EVAL_PATH="${BASE_DIR}/evaluate.py"
