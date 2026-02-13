@@ -17,7 +17,7 @@ def get_ssm_parameter(parameter_name: str, region_name: str) -> str:
     response = ssm.get_parameter(Name=parameter_name, WithDecryption=True)
     return response['Parameter']['Value']
 try:
-    api_key = get_ssm_parameter('/MIND/PRD/EVOLVE', 'us-east-1')
+    api_key = get_ssm_parameter('/MIND/PRD/EVOLVE-MIRROR', 'us-east-1')
     print(api_key)
 except Exception as e:
     print(f'Error: {e}', file=sys.stderr)

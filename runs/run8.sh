@@ -7,6 +7,7 @@ EVAL_PATH="${BASE_DIR}/evaluate.py"
 INIT_PROG_PATH="${BASE_DIR}/init_program.py"
 OUT_DIR="experiments/${PROB_NAME}/qwen/ablations_comp/qwen_full_2"
 CPU_LIST="70-79"
+CKPT_PATH="${OUT_DIR}/checkpoints/checkpoint_2000"
 
 API_KEY=$(python3 -c "
 import boto3
@@ -17,7 +18,7 @@ def get_ssm_parameter(parameter_name: str, region_name: str) -> str:
     response = ssm.get_parameter(Name=parameter_name, WithDecryption=True)
     return response['Parameter']['Value']
 try:
-    api_key = get_ssm_parameter('/MIND/PRD/EVOLVE', 'us-east-1')
+    api_key = get_ssm_parameter('/MIND/PRD/EVOLVE-MIRROR', 'us-east-1')
     print(api_key)
 except Exception as e:
     print(f'Error: {e}', file=sys.stderr)
@@ -31,4 +32,4 @@ else
 fi
 
 
-taskset --cpu-list $CPU_LIST python openevolve-run.py $INIT_PROG_PATH $EVAL_PATH --config=$CFG_PATH --output=$OUT_DIR
+taskset --cpu-list $CPU_LIST python openevolve-run.py $INIT_PROG_PATH $EVAL_PATH --config=$CFG_PATH --output=$OUT_DIR --checkpoint=$CKPT_PATH

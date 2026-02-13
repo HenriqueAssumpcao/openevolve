@@ -144,7 +144,7 @@ database:
   log_prompts: true                  # If true, log all prompts and responses into the database
 
   # Evolutionary parameters
-  population_size: 1000               # Maximum number of programs to keep in memory
+  population_size: 3000               # Maximum number of programs to keep in memory
   archive_size: 100                   # Size of elite archive
   num_islands: 10                      # Number of islands for island model (separate populations)
 
