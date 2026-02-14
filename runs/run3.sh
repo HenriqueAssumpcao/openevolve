@@ -1,17 +1,13 @@
 #!/bin/bash
 
-PROB_NAME="codeevolve_benchmarks/packing_problems/hexagon_packing/11"
+PROB_NAME="codeevolve_benchmarks/minimizing_max_min_dist/2"
 BASE_DIR="examples/${PROB_NAME}"
 CFG_PATH="${BASE_DIR}/configs/qwen_config.yaml"
 EVAL_PATH="${BASE_DIR}/evaluate.py"
 INIT_PROG_PATH="${BASE_DIR}/init_program.py"
-OUT_DIR="experiments/${PROB_NAME}/qwen/ablations_comp/qwen_full_3"
+OUT_DIR="experiments/${PROB_NAME}/qwen/ablations_comp/qwen_full_1"
 CPU_LIST="20-29"
-<<<<<<< HEAD
-CKPT_PATH="${OUT_DIR}/checkpoints/checkpoint_2000"
-=======
-CKPT_PATH="${OUT_DIR}/checkpoints/checkpoint_1500"
->>>>>>> d6c59074dc1c2ba8a1dbeb8f7dca8ac5bc04016f
+# CKPT_PATH="${OUT_DIR}/checkpoints/checkpoint_2500"
 
 API_KEY=$(python3 -c "
 import boto3
@@ -36,4 +32,4 @@ else
 fi
 
 
-taskset --cpu-list $CPU_LIST python openevolve-run.py $INIT_PROG_PATH $EVAL_PATH --config=$CFG_PATH --output=$OUT_DIR --checkpoint=$CKPT_PATH
+taskset --cpu-list $CPU_LIST python openevolve-run.py $INIT_PROG_PATH $EVAL_PATH --config=$CFG_PATH --output=$OUT_DIR

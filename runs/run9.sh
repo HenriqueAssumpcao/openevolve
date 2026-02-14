@@ -7,11 +7,7 @@ EVAL_PATH="${BASE_DIR}/evaluate.py"
 INIT_PROG_PATH="${BASE_DIR}/init_program.py"
 OUT_DIR="experiments/${PROB_NAME}/qwen/ablations_comp/qwen_full_3"
 CPU_LIST="80-89"
-<<<<<<< HEAD
-CKPT_PATH="${OUT_DIR}/checkpoints/checkpoint_2000"
-=======
 CKPT_PATH="${OUT_DIR}/checkpoints/checkpoint_1000"
->>>>>>> d6c59074dc1c2ba8a1dbeb8f7dca8ac5bc04016f
 
 API_KEY=$(python3 -c "
 import boto3

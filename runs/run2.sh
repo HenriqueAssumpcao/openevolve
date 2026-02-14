@@ -1,17 +1,13 @@
 #!/bin/bash
 
-PROB_NAME="codeevolve_benchmarks/packing_problems/hexagon_packing/11"
+PROB_NAME="codeevolve_benchmarks/autocorrelation_problems/first_autocorr_ineq"
 BASE_DIR="examples/${PROB_NAME}"
 CFG_PATH="${BASE_DIR}/configs/qwen_config.yaml"
 EVAL_PATH="${BASE_DIR}/evaluate.py"
 INIT_PROG_PATH="${BASE_DIR}/init_program.py"
 OUT_DIR="experiments/${PROB_NAME}/qwen/ablations_comp/qwen_full_2"
 CPU_LIST="10-19"
-<<<<<<< HEAD
-CKPT_PATH="${OUT_DIR}/checkpoints/checkpoint_2000"
-=======
 CKPT_PATH="${OUT_DIR}/checkpoints/checkpoint_2500"
->>>>>>> d6c59074dc1c2ba8a1dbeb8f7dca8ac5bc04016f
 
 API_KEY=$(python3 -c "
 import boto3
